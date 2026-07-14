@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { animateAvatar, getVideoStatus } from "@/lib/integrations/heygen";
 
+export const maxDuration = 60;
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -11,6 +13,7 @@ export async function POST(
   const characterImageUrl = body.characterImageUrl as string;
   const script = body.script as string;
   const voiceId = body.voiceId as string | undefined;
+  const title = body.title as string | undefined;
 
   if (!characterImageUrl) {
     return NextResponse.json(
@@ -31,24 +34,42 @@ export async function POST(
       imageUrl: characterImageUrl,
       script,
       voiceId,
+      title,
     });
 
-    let videoUrl: string | null = null;
-    if (!result.demo) {
-      const status = await getVideoStatus(result.videoId);
-      videoUrl = status.videoUrl;
-    }
-
     return NextResponse.json({
-      animationVideoUrl: videoUrl,
+      animationVideoUrl: null,
       currentStep: "export",
       status: "in_progress",
       videoId: result.videoId,
+      videoStatus: result.status,
       demo: result.demo,
     });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur d'animation" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { searchParams } = new URL(request.url);
+  const videoId = searchParams.get("videoId");
+
+  if (!videoId) {
+    return NextResponse.json({ error: "videoId requis" }, { status: 400 });
+  }
+
+  try {
+    const status = await getVideoStatus(videoId);
+    return NextResponse.json(status);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Erreur" },
       { status: 500 }
     );
   }
