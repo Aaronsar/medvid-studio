@@ -22,6 +22,7 @@ export interface Project {
   voiceId: string;
   voiceAudioUrl: string | null;
   animationVideoUrl: string | null;
+  heygenVideoId: string | null;
   subtitles: string;
   style: "pixar" | "realistic" | "anime";
 }

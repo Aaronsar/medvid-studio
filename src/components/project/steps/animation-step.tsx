@@ -54,6 +54,7 @@ export function AnimationStep({
         setStatusMessage("Vidéo prête !");
         await onUpdate({
           animationVideoUrl: data.videoUrl,
+          heygenVideoId: id,
           currentStep: "export",
           status: "in_progress",
         });
@@ -108,6 +109,7 @@ export function AnimationStep({
       }
 
       setVideoId(data.videoId);
+      await onUpdate({ heygenVideoId: data.videoId });
       await pollVideoStatus(data.videoId);
     } catch {
       setError("Erreur réseau, réessayez");

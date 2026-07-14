@@ -39,6 +39,35 @@ export function ExportStep({
   const [saving, setSaving] = useState(false);
   const [finalized, setFinalized] = useState(project.status === "completed");
   const [error, setError] = useState("");
+  const [fetchingVideo, setFetchingVideo] = useState(false);
+  const [videoUrl, setVideoUrl] = useState(project.animationVideoUrl);
+
+  const heygenId = project.heygenVideoId;
+  const downloadUrl = videoUrl ?? project.animationVideoUrl;
+
+  async function fetchVideoFromHeyGen() {
+    if (!heygenId) return;
+    setFetchingVideo(true);
+    setError("");
+    try {
+      const res = await fetch(
+        `/api/projects/${project.id}/animate?videoId=${heygenId}`
+      );
+      const data = await res.json();
+      if (data.status === "completed" && data.videoUrl) {
+        setVideoUrl(data.videoUrl);
+        await onUpdate({ animationVideoUrl: data.videoUrl });
+      } else if (data.status === "processing" || data.status === "waiting") {
+        setError("La vidéo est encore en cours de génération sur HeyGen. Réessayez dans 1-2 minutes.");
+      } else {
+        setError("Vidéo pas encore prête. Ouvrez HeyGen pour la télécharger.");
+      }
+    } catch {
+      setError("Impossible de récupérer la vidéo.");
+    } finally {
+      setFetchingVideo(false);
+    }
+  }
 
   async function handleSaveSubtitles() {
     setSaving(true);
@@ -81,44 +110,103 @@ export function ExportStep({
           <CardContent className="flex flex-col items-center py-12 text-center">
             <PartyPopper className="size-16 text-accent mb-4" />
             <h2 className="text-2xl font-bold">Projet finalisé !</h2>
-            <p className="text-muted-foreground mt-2 max-w-md">
-              Votre vidéo pédagogique de <strong>{project.professorName}</strong>{" "}
-              est prête. Téléchargez-la ou importez-la dans CapCut pour les
-              sous-titres animés.
+            <p className="text-muted-foreground mt-2 max-w-lg">
+              Voici comment récupérer votre vidéo et la publier :
             </p>
 
+            <div className="mt-6 w-full max-w-md space-y-3 text-left text-sm">
+              <div className="rounded-lg border border-border bg-card p-4 space-y-1">
+                <p className="font-semibold">1. Télécharger la vidéo animée</p>
+                <p className="text-muted-foreground text-xs">
+                  C&apos;est la vidéo où le professeur parle (générée par HeyGen).
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-4 space-y-1">
+                <p className="font-semibold">2. Ajouter les sous-titres dans CapCut</p>
+                <p className="text-muted-foreground text-xs">
+                  Importez la vidéo + collez le script comme sous-titres animés.
+                </p>
+              </div>
+              <div className="rounded-lg border border-border bg-card p-4 space-y-1">
+                <p className="font-semibold">3. Publier en Reels / TikTok</p>
+                <p className="text-muted-foreground text-xs">
+                  Format vertical 9:16, idéal Instagram.
+                </p>
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-sm text-destructive mt-4">{error}</p>
+            )}
+
             <div className="flex flex-wrap gap-3 mt-6 justify-center">
-              {project.animationVideoUrl && (
+              {downloadUrl ? (
                 <a
-                  href={project.animationVideoUrl}
+                  href={downloadUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  download
                 >
-                  <Button className="gap-2">
+                  <Button size="lg" className="gap-2">
                     <Download className="size-4" />
                     Télécharger la vidéo
+                  </Button>
+                </a>
+              ) : heygenId ? (
+                <>
+                  <Button
+                    size="lg"
+                    className="gap-2"
+                    onClick={fetchVideoFromHeyGen}
+                    disabled={fetchingVideo}
+                  >
+                    {fetchingVideo ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Download className="size-4" />
+                    )}
+                    Récupérer ma vidéo
+                  </Button>
+                  <a
+                    href={`https://app.heygen.com/videos/${heygenId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button size="lg" variant="outline" className="gap-2">
+                      <ExternalLink className="size-4" />
+                      Ouvrir sur HeyGen
+                    </Button>
+                  </a>
+                </>
+              ) : (
+                <a
+                  href="https://app.heygen.com/home"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button size="lg" variant="outline" className="gap-2">
+                    <ExternalLink className="size-4" />
+                    Mes vidéos sur HeyGen
                   </Button>
                 </a>
               )}
               <Link href="/">
                 <Button variant="outline" className="gap-2">
                   <Home className="size-4" />
-                  Retour au dashboard
+                  Dashboard
                 </Button>
               </Link>
             </div>
           </CardContent>
         </Card>
 
-        {project.animationVideoUrl && (
+        {downloadUrl && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Aperçu final</CardTitle>
+              <CardTitle className="text-base">Aperçu de votre vidéo</CardTitle>
             </CardHeader>
             <CardContent>
               <video
-                src={project.animationVideoUrl}
+                src={downloadUrl}
                 controls
                 className="w-full max-w-md mx-auto rounded-xl border border-border"
               />

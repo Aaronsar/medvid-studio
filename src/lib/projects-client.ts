@@ -72,6 +72,7 @@ export function createProjectClient(
     voiceId: "french-male-1",
     voiceAudioUrl: null,
     animationVideoUrl: null,
+    heygenVideoId: null,
     subtitles: "",
   };
 
