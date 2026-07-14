@@ -50,8 +50,8 @@ export function CharacterStep({
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      setError("Image trop lourde (max 10 Mo)");
+    if (file.size > 4 * 1024 * 1024) {
+      setError("Image trop lourde (max 4 Mo)");
       return;
     }
 
@@ -81,7 +81,11 @@ export function CharacterStep({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Erreur de génération");
+        const errMsg =
+          typeof data.error === "string"
+            ? data.error
+            : "Erreur de génération";
+        setError(errMsg);
         return;
       }
       setImageUrl(data.characterImageUrl);
@@ -155,7 +159,7 @@ export function CharacterStep({
                   Cliquez pour uploader votre photo
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  JPG, PNG ou WEBP — max 10 Mo
+                  JPG, PNG ou WEBP — max 4 Mo
                 </span>
               </button>
             )}
@@ -226,6 +230,11 @@ export function CharacterStep({
             )}
           </div>
 
+          {generating && (
+            <p className="text-xs text-muted-foreground text-center">
+              La génération prend 30 à 60 secondes, patientez...
+            </p>
+          )}
           {demo && (
             <p className="text-xs text-amber-400">
               Mode démo : ajoutez OPENAI_API_KEY pour la vraie génération

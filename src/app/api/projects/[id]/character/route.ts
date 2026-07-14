@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { generateCharacterImage } from "@/lib/integrations/openai";
 import { STYLE_OPTIONS } from "@/lib/types";
 
+export const maxDuration = 60;
+
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

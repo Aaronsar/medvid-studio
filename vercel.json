@@ -1,0 +1,10 @@
+{
+  "functions": {
+    "src/app/api/projects/[id]/character/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/projects/[id]/animate/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}

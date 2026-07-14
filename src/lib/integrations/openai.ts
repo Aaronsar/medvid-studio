@@ -52,6 +52,15 @@ async function analyzeReferencePhoto(
   return data.choices[0]?.message?.content ?? "";
 }
 
+function parseImageResponse(data: {
+  data: Array<{ url?: string; b64_json?: string }>;
+}): string {
+  const item = data.data[0];
+  if (item.url) return item.url;
+  if (item.b64_json) return `data:image/png;base64,${item.b64_json}`;
+  throw new Error("Aucune image retournée par OpenAI");
+}
+
 export async function generateCharacterImage(
   params: GenerateImageParams
 ): Promise<{ imageUrl: string; prompt: string; demo: boolean }> {
@@ -94,23 +103,30 @@ export async function generateCharacterImage(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "dall-e-3",
+        model: "gpt-image-1",
         prompt: fullPrompt,
         n: 1,
-        size: "1024x1024",
-        quality: "hd",
+        size: "1024x1536",
+        quality: "medium",
       }),
     }
   );
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI API error: ${error}`);
+    const errorText = await response.text();
+    let message = errorText;
+    try {
+      const parsed = JSON.parse(errorText);
+      message = parsed.error?.message ?? errorText;
+    } catch {
+      // keep raw text
+    }
+    throw new Error(message);
   }
 
   const data = await response.json();
   return {
-    imageUrl: data.data[0].url as string,
+    imageUrl: parseImageResponse(data),
     prompt: fullPrompt,
     demo: false,
   };
