@@ -57,6 +57,7 @@ export async function createProject(
     voiceId: "french-male-1",
     voiceAudioUrl: null,
     animationVideoUrl: null,
+    heygenVideoId: null,
     subtitles: "",
   };
 
