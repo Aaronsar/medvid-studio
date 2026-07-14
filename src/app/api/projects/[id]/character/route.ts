@@ -13,12 +13,33 @@ export async function POST(
   const specialty = body.specialty as string;
   const style = body.style as "pixar" | "realistic" | "anime";
   const customPrompt = body.prompt ?? "";
+  const referenceImageBase64 = body.referenceImageBase64 as string | undefined;
+  const usePhotoDirectly = body.usePhotoDirectly as boolean;
 
   if (!professorName || !specialty) {
     return NextResponse.json(
       { error: "professorName et specialty sont requis" },
       { status: 400 }
     );
+  }
+
+  if (usePhotoDirectly) {
+    if (!referenceImageBase64) {
+      return NextResponse.json(
+        { error: "Aucune photo fournie" },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json({
+      characterPrompt: customPrompt || `Photo de ${professorName}`,
+      characterImageUrl: referenceImageBase64.startsWith("data:")
+        ? referenceImageBase64
+        : `data:image/jpeg;base64,${referenceImageBase64}`,
+      referencePhotoUrl: referenceImageBase64,
+      currentStep: "voice",
+      status: "in_progress",
+      demo: false,
+    });
   }
 
   const styleOption = STYLE_OPTIONS.find((s) => s.id === style);
@@ -29,11 +50,13 @@ export async function POST(
       professorName,
       specialty,
       styleSuffix: styleOption?.promptSuffix ?? STYLE_OPTIONS[0].promptSuffix,
+      referenceImageBase64,
     });
 
     return NextResponse.json({
       characterPrompt: result.prompt,
       characterImageUrl: result.imageUrl,
+      referencePhotoUrl: referenceImageBase64 ?? null,
       currentStep: "voice",
       status: "in_progress",
       demo: result.demo,
