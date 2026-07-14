@@ -32,6 +32,12 @@ export function AnimationStep({
     try {
       const res = await fetch(`/api/projects/${project.id}/animate`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          characterImageUrl: project.characterImageUrl,
+          script: project.script,
+          voiceId: project.voiceId,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -40,6 +46,7 @@ export function AnimationStep({
         await onUpdate({
           animationVideoUrl: data.animationVideoUrl,
           currentStep: "export",
+          status: "in_progress",
         });
       }
     } finally {

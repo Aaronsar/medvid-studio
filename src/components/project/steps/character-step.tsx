@@ -36,7 +36,12 @@ export function CharacterStep({
       const res = await fetch(`/api/projects/${project.id}/character`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({
+          prompt,
+          professorName: project.professorName,
+          specialty: project.specialty,
+          style: project.style,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -45,6 +50,8 @@ export function CharacterStep({
         await onUpdate({
           characterPrompt: data.characterPrompt,
           characterImageUrl: data.characterImageUrl,
+          currentStep: "voice",
+          status: "in_progress",
         });
       }
     } finally {

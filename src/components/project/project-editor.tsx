@@ -3,6 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import type { Project, ProjectStep } from "@/lib/types";
+import {
+  getProjectClient,
+  updateProjectClient,
+} from "@/lib/projects-client";
 import { StepIndicator } from "@/components/project/step-indicator";
 import { ScriptStep } from "@/components/project/steps/script-step";
 import { CharacterStep } from "@/components/project/steps/character-step";
@@ -29,27 +33,20 @@ export function ProjectEditor() {
   const [loading, setLoading] = useState(true);
   const [activeStep, setActiveStep] = useState<ProjectStep>("script");
 
-  const fetchProject = useCallback(async () => {
-    const res = await fetch(`/api/projects/${id}`);
-    const data = await res.json();
+  const loadProject = useCallback(() => {
+    const data = getProjectClient(id);
     setProject(data);
-    setActiveStep(data.currentStep ?? "script");
+    if (data) setActiveStep(data.currentStep ?? "script");
     setLoading(false);
   }, [id]);
 
   useEffect(() => {
-    fetchProject();
-  }, [fetchProject]);
+    loadProject();
+  }, [loadProject]);
 
   async function handleUpdate(updates: Partial<Project>) {
-    const res = await fetch(`/api/projects/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    });
-    const data = await res.json();
-    setProject(data);
-    return data;
+    const updated = updateProjectClient(id, updates);
+    if (updated) setProject(updated);
   }
 
   function goToNextStep() {

@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { STYLE_OPTIONS } from "@/lib/types";
+import { createProjectClient } from "@/lib/projects-client";
 import { cn } from "@/lib/utils";
 import { Plus, Loader2 } from "lucide-react";
 
@@ -20,6 +21,7 @@ export function NewProjectDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [title, setTitle] = useState("");
   const [professorName, setProfessorName] = useState("");
   const [specialty, setSpecialty] = useState("");
@@ -28,14 +30,19 @@ export function NewProjectDialog() {
   async function handleCreate() {
     if (!title || !professorName || !specialty) return;
     setLoading(true);
+    setError("");
     try {
-      const res = await fetch("/api/projects", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, professorName, specialty, style }),
+      const project = createProjectClient({
+        title,
+        professorName,
+        specialty,
+        style,
       });
-      const project = await res.json();
       router.push(`/projects/${project.id}`);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Erreur lors de la création"
+      );
     } finally {
       setLoading(false);
     }
@@ -63,7 +70,7 @@ export function NewProjectDialog() {
           <Label htmlFor="title">Titre de la vidéo</Label>
           <Input
             id="title"
-            placeholder="ex: Les 3 signes d'alerte cardiaque"
+            placeholder="ex: Introduction biologie cellulaire"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
@@ -72,7 +79,7 @@ export function NewProjectDialog() {
           <Label htmlFor="professor">Nom du professeur</Label>
           <Input
             id="professor"
-            placeholder="ex: Dr. Martin Dupont"
+            placeholder="ex: Professeur Koskas"
             value={professorName}
             onChange={(e) => setProfessorName(e.target.value)}
           />
@@ -81,7 +88,7 @@ export function NewProjectDialog() {
           <Label htmlFor="specialty">Spécialité</Label>
           <Input
             id="specialty"
-            placeholder="ex: Cardiologie"
+            placeholder="ex: Biologie cellulaire"
             value={specialty}
             onChange={(e) => setSpecialty(e.target.value)}
           />
@@ -109,6 +116,9 @@ export function NewProjectDialog() {
             ))}
           </div>
         </div>
+        {error && (
+          <p className="text-sm text-destructive">{error}</p>
+        )}
         <div className="flex gap-2 pt-2">
           <Button
             onClick={handleCreate}

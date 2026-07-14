@@ -1,20 +1,14 @@
 import { NextResponse } from "next/server";
-import { getProject, updateProject } from "@/lib/projects";
 import { generateVoice } from "@/lib/integrations/elevenlabs";
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params;
-  const project = await getProject(id);
-  if (!project) {
-    return NextResponse.json({ error: "Projet introuvable" }, { status: 404 });
-  }
-
+  const { id: _id } = await params;
   const body = await request.json();
-  const text = body.text ?? project.script;
-  const voiceId = body.voiceId ?? project.voiceId;
+  const text = body.text as string;
+  const voiceId = (body.voiceId as string) ?? "french-male-1";
 
   if (!text) {
     return NextResponse.json(
@@ -30,14 +24,13 @@ export async function POST(
       ? `data:audio/mpeg;base64,${result.audioBase64}`
       : null;
 
-    const updated = await updateProject(id, {
+    return NextResponse.json({
       voiceId,
       voiceAudioUrl: audioUrl,
       currentStep: "animation",
       status: "in_progress",
+      demo: result.demo,
     });
-
-    return NextResponse.json({ ...updated, demo: result.demo });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Erreur de synthèse" },
