@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -19,6 +20,9 @@ import {
   Copy,
   ExternalLink,
   FileText,
+  Loader2,
+  PartyPopper,
+  Home,
 } from "lucide-react";
 
 export function ExportStep({
@@ -32,9 +36,25 @@ export function ExportStep({
     project.subtitles || project.script
   );
   const [copied, setCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [finalized, setFinalized] = useState(project.status === "completed");
+  const [error, setError] = useState("");
 
   async function handleSaveSubtitles() {
-    await onUpdate({ subtitles, status: "completed" });
+    setSaving(true);
+    setError("");
+    try {
+      await onUpdate({
+        subtitles,
+        status: "completed",
+        currentStep: "export",
+      });
+      setFinalized(true);
+    } catch {
+      setError("Erreur de sauvegarde. Réessayez.");
+    } finally {
+      setSaving(false);
+    }
   }
 
   function copySubtitles() {
@@ -47,9 +67,67 @@ export function ExportStep({
     { label: "Script rédigé", done: !!project.script },
     { label: "Personnage généré", done: !!project.characterImageUrl },
     { label: "Voix synthétisée", done: !!project.voiceAudioUrl },
-    { label: "Animation lancée", done: !!project.animationVideoUrl || project.currentStep === "export" },
+    {
+      label: "Animation lancée",
+      done: !!project.animationVideoUrl || project.currentStep === "export",
+    },
     { label: "Sous-titres prêts", done: !!subtitles },
   ];
+
+  if (finalized) {
+    return (
+      <div className="space-y-6">
+        <Card className="border-accent/50 bg-accent/5">
+          <CardContent className="flex flex-col items-center py-12 text-center">
+            <PartyPopper className="size-16 text-accent mb-4" />
+            <h2 className="text-2xl font-bold">Projet finalisé !</h2>
+            <p className="text-muted-foreground mt-2 max-w-md">
+              Votre vidéo pédagogique de <strong>{project.professorName}</strong>{" "}
+              est prête. Téléchargez-la ou importez-la dans CapCut pour les
+              sous-titres animés.
+            </p>
+
+            <div className="flex flex-wrap gap-3 mt-6 justify-center">
+              {project.animationVideoUrl && (
+                <a
+                  href={project.animationVideoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                >
+                  <Button className="gap-2">
+                    <Download className="size-4" />
+                    Télécharger la vidéo
+                  </Button>
+                </a>
+              )}
+              <Link href="/">
+                <Button variant="outline" className="gap-2">
+                  <Home className="size-4" />
+                  Retour au dashboard
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        {project.animationVideoUrl && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Aperçu final</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <video
+                src={project.animationVideoUrl}
+                controls
+                className="w-full max-w-md mx-auto rounded-xl border border-border"
+              />
+            </CardContent>
+          </Card>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
@@ -74,12 +152,29 @@ export function ExportStep({
                 onChange={(e) => setSubtitles(e.target.value)}
               />
             </div>
+
+            {error && (
+              <p className="text-sm text-destructive">{error}</p>
+            )}
+
             <div className="flex gap-2">
-              <Button onClick={handleSaveSubtitles} className="gap-2">
-                <CheckCircle className="size-4" />
-                Finaliser le projet
+              <Button
+                onClick={handleSaveSubtitles}
+                disabled={saving}
+                className="gap-2"
+              >
+                {saving ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="size-4" />
+                )}
+                {saving ? "Finalisation..." : "Finaliser le projet"}
               </Button>
-              <Button variant="outline" onClick={copySubtitles} className="gap-2">
+              <Button
+                variant="outline"
+                onClick={copySubtitles}
+                className="gap-2"
+              >
                 <Copy className="size-4" />
                 {copied ? "Copié !" : "Copier"}
               </Button>
@@ -159,21 +254,16 @@ export function ExportStep({
                 {project.style}
               </Badge>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Format</span>
-              <span className="font-medium">9:16 (Reels)</span>
-            </div>
           </div>
 
-          {project.script && (
-            <div className="rounded-lg border border-border p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <FileText className="size-4 text-muted-foreground" />
-                <span className="text-xs font-medium text-muted-foreground">
-                  Script
-                </span>
-              </div>
-              <p className="text-sm line-clamp-4">{project.script}</p>
+          {project.animationVideoUrl && (
+            <div className="space-y-2">
+              <Label>Aperçu vidéo</Label>
+              <video
+                src={project.animationVideoUrl}
+                controls
+                className="w-full rounded-xl border border-border"
+              />
             </div>
           )}
         </CardContent>

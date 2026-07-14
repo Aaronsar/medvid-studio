@@ -14,7 +14,32 @@ function readProjects(): Project[] {
 }
 
 function writeProjects(projects: Project[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+  } catch (err) {
+    if (
+      err instanceof DOMException &&
+      (err.name === "QuotaExceededError" || err.code === 22)
+    ) {
+      const light = projects.map(sanitizeProject);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(light));
+      return;
+    }
+    throw err;
+  }
+}
+
+function sanitizeProject(project: Project): Project {
+  const copy = { ...project };
+  if (copy.animationVideoUrl?.startsWith("http")) {
+    if (copy.voiceAudioUrl?.startsWith("data:")) copy.voiceAudioUrl = null;
+  }
+  if (copy.characterImageUrl && copy.characterImageUrl.length > 200_000) {
+    if (copy.animationVideoUrl?.startsWith("http")) {
+      copy.characterImageUrl = null;
+    }
+  }
+  return copy;
 }
 
 export function getAllProjectsClient(): Project[] {
@@ -64,11 +89,11 @@ export function updateProjectClient(
   const index = projects.findIndex((p) => p.id === id);
   if (index === -1) return null;
 
-  projects[index] = {
+  projects[index] = sanitizeProject({
     ...projects[index],
     ...updates,
     updatedAt: new Date().toISOString(),
-  };
+  });
   writeProjects(projects);
   return projects[index];
 }
