@@ -77,7 +77,7 @@ export function AnimationStep({
     "heygen" | "medvid" | null
   >(project.animationProvider ?? "medvid");
   const [animationModel, setAnimationModel] = useState<
-    "kling" | "memo" | "sadtalker" | null
+    "kling" | "pruna" | "memo" | "sadtalker" | null
   >(project.animationModel);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -93,7 +93,7 @@ export function AnimationStep({
   const { wordCount, audioMin, heygenMin } = estimateFromScript(project.script);
   const estimatedMin =
     animationProvider === "medvid"
-      ? Math.max(4, Math.ceil(audioMin * 3.5))
+      ? Math.max(3, Math.ceil(audioMin * 2.5))
       : heygenMin;
 
   useEffect(() => {
@@ -390,7 +390,7 @@ export function AnimationStep({
         demo?: boolean;
         videoId?: string;
         animationProvider?: "heygen" | "medvid";
-        animationModel?: "kling" | "memo" | "sadtalker" | null;
+        animationModel?: "kling" | "pruna" | "memo" | "sadtalker" | null;
         characterHeygenAvatarId?: string | null;
       }>(res);
 
@@ -474,7 +474,7 @@ export function AnimationStep({
             >
               <p className="font-medium">MedVid Engine</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Kling Avatar V2 — cartoon 3D, lip-sync pro, ~1–2 $/vidéo
+                Kling Avatar V2 rapide — cartoon 3D, lip-sync pro, ~3–5 min
               </p>
               <Badge variant="success" className="mt-2 text-[10px]">
                 Recommandé
@@ -499,9 +499,8 @@ export function AnimationStep({
 
           {animationProvider === "medvid" && (
             <p className="text-xs text-primary/90 rounded-lg border border-primary/30 bg-primary/5 p-3">
-              MedVid Engine utilise <strong>Kling Avatar V2</strong> (cartoon,
-              stylisé, 1080p). En cas d&apos;échec, bascule automatique vers
-              MEMO puis SadTalker.
+              MedVid Engine utilise <strong>Kling Avatar V2</strong> (mode rapide)
+              puis P-Video en secours. MEMO désactivé (trop lent).
             </p>
           )}
 
@@ -602,7 +601,7 @@ export function AnimationStep({
                     {animationProvider === "medvid" ? (
                       <>
                         {" "}
-                        MedVid Engine (Kling Avatar V2) — lip-sync cartoon 3D.
+                        MedVid Engine (Kling rapide) — ~3–5 min pour votre script.
                       </>
                     ) : (
                       <>
@@ -660,7 +659,7 @@ export function AnimationStep({
               ) : (
                 <>
                   comptez <strong>~{estimatedMin} min</strong> via MedVid Engine
-                  (~1–2 $ total, Kling Avatar V2)
+                  (~0,50–1,50 $ total, Kling std)
                 </>
               )}
             </p>

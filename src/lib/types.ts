@@ -30,7 +30,7 @@ export interface Project {
   animationVideoUrl: string | null;
   heygenVideoId: string | null;
   animationProvider: "heygen" | "medvid" | null;
-  animationModel: "kling" | "memo" | "sadtalker" | null;
+  animationModel: "kling" | "pruna" | "memo" | "sadtalker" | null;
   subtitles: string;
   style: "pixar" | "realistic" | "anime";
 }

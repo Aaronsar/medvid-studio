@@ -65,7 +65,7 @@ export function parseReplicateError(err: unknown): string {
 
 function parseRetryAfterSeconds(msg: string): number {
   const match = msg.match(/retry_after["']?\s*:\s*(\d+)/);
-  return match ? Number(match[1]) + 3 : 15;
+  return match ? Number(match[1]) + 5 : 12;
 }
 
 type PredictionCreateInput = {

@@ -1,8 +1,7 @@
 /**
  * MedVid Engine — moteur d'animation lip-sync propriétaire.
- * Image cartoon + audio ElevenLabs → vidéo parlante.
- *
- * Chaîne qualité (auto) : Kling Avatar V2 → MEMO → SadTalker
+ * Chaîne rapide : Kling Avatar V2 → P-Video Avatar → SadTalker
+ * (MEMO désactivé par défaut — ~40 min, réservé à MEDVID_MODEL=memo)
  */
 import {
   createPredictionWithRetry,
@@ -11,24 +10,31 @@ import {
 } from "./replicate-utils";
 
 const KLING_MODEL = "kwaivgi/kling-avatar-v2";
+const PRUNA_MODEL = "prunaai/p-video-avatar";
 const SADTALKER_MODELS = [
   "cjwbw/sadtalker",
   "lucataco/sadtalker",
 ] as const;
 const MEMO_MODEL = "zsxkib/memo";
 
-export type MedVidModel = "kling" | "memo" | "sadtalker";
+export type MedVidModel = "kling" | "pruna" | "memo" | "sadtalker";
 
-const MODEL_CHAIN: MedVidModel[] = ["kling", "memo", "sadtalker"];
+/** Chaîne par défaut — pas de MEMO (trop lent). */
+const FAST_MODEL_CHAIN: MedVidModel[] = ["kling", "pruna", "sadtalker"];
 
 const KLING_AUDIO_MAX_BYTES = 5 * 1024 * 1024;
 
 function getModelChain(): MedVidModel[] {
   const forced = process.env.MEDVID_MODEL?.toLowerCase();
   if (forced === "kling") return ["kling"];
+  if (forced === "pruna") return ["pruna"];
   if (forced === "memo") return ["memo"];
   if (forced === "sadtalker") return ["sadtalker"];
-  return MODEL_CHAIN;
+  return FAST_MODEL_CHAIN;
+}
+
+function getKlingMode(): "std" | "pro" {
+  return process.env.KLING_MODE?.toLowerCase() === "pro" ? "pro" : "std";
 }
 
 function toMediaInput(value: string, fallbackMime: string): string {
@@ -65,10 +71,14 @@ function assertKlingAudioLimit(audioUrl: string): void {
   if (bytes > KLING_AUDIO_MAX_BYTES) {
     const mb = (bytes / (1024 * 1024)).toFixed(1);
     throw new Error(
-      `Audio trop volumineux pour Kling (${mb} Mo, max 5 Mo). ` +
-        "Raccourcissez le script ou forcez MEDVID_MODEL=memo."
+      `Audio trop volumineux pour Kling (${mb} Mo, max 5 Mo). Raccourcissez le script.`
     );
   }
+}
+
+function isRateLimitError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return msg.includes("429") || /throttl/i.test(msg);
 }
 
 async function createKlingPrediction(params: {
@@ -79,18 +89,42 @@ async function createKlingPrediction(params: {
   assertKlingAudioLimit(params.audioUrl);
 
   const prompt = params.professorName
-    ? `medical professor ${params.professorName} lecturing professionally, natural lip sync, subtle head movement, expressive cartoon face`
-    : "medical professor lecturing professionally, natural lip sync, subtle head movement, expressive cartoon face";
+    ? `cartoon 3D professor ${params.professorName} talking naturally, expressive lip sync`
+    : "cartoon 3D professor talking naturally, expressive lip sync";
 
-  return createPredictionWithRetry({
-    model: KLING_MODEL,
-    input: {
-      image: toMediaInput(params.imageUrl, "image/png"),
-      audio: toMediaInput(params.audioUrl, "audio/mpeg"),
-      mode: "pro",
-      prompt,
+  return createPredictionWithRetry(
+    {
+      model: KLING_MODEL,
+      input: {
+        image: toMediaInput(params.imageUrl, "image/png"),
+        audio: toMediaInput(params.audioUrl, "audio/mpeg"),
+        mode: getKlingMode(),
+        prompt,
+      },
     },
-  });
+    5
+  );
+}
+
+async function createPrunaPrediction(params: {
+  imageUrl: string;
+  audioUrl: string;
+}) {
+  return createPredictionWithRetry(
+    {
+      model: PRUNA_MODEL,
+      input: {
+        image: toMediaInput(params.imageUrl, "image/png"),
+        audio: toMediaInput(params.audioUrl, "audio/mpeg"),
+        resolution: "720p",
+        video_prompt:
+          "The cartoon character talks to camera with natural lip sync and subtle head movement.",
+        disable_safety_filter: true,
+        disable_prompt_upsampling: true,
+      },
+    },
+    5
+  );
 }
 
 async function createSadTalkerPrediction(params: {
@@ -110,7 +144,7 @@ async function createSadTalkerPrediction(params: {
   let lastError: unknown;
   for (const model of SADTALKER_MODELS) {
     try {
-      return await createPredictionWithRetry({ model, input });
+      return await createPredictionWithRetry({ model, input }, 3);
     } catch (err) {
       lastError = err;
       const msg = err instanceof Error ? err.message : String(err);
@@ -135,10 +169,10 @@ async function createMemoPrediction(params: {
     input: {
       image: toMediaInput(params.imageUrl, "image/png"),
       audio: toMediaInput(params.audioUrl, "audio/mpeg"),
-      resolution: 512,
-      fps: 24,
-      inference_steps: 25,
-      cfg_scale: 3.5,
+      resolution: 480,
+      fps: 20,
+      inference_steps: 12,
+      cfg_scale: 3.0,
       max_audio_seconds: audioSec,
       num_generated_frames_per_clip: 16,
     },
@@ -156,6 +190,8 @@ async function createPredictionForModel(
   switch (model) {
     case "kling":
       return createKlingPrediction(params);
+    case "pruna":
+      return createPrunaPrediction(params);
     case "memo":
       return createMemoPrediction(params);
     case "sadtalker":
@@ -198,11 +234,19 @@ export async function startMedVidAnimation(params: {
     } catch (err) {
       lastError = err;
       const hasFallback = i < chain.length - 1;
+      if (isRateLimitError(err) && hasFallback) {
+        console.warn(
+          `[MedVid Engine] ${model} rate-limited, attente puis ${chain[i + 1]}…`
+        );
+        await new Promise((r) => setTimeout(r, 12_000));
+      }
       if (!hasFallback) break;
-      console.warn(
-        `[MedVid Engine] ${model} échoué, tentative ${chain[i + 1]}…`,
-        err instanceof Error ? err.message : err
-      );
+      if (!isRateLimitError(err)) {
+        console.warn(
+          `[MedVid Engine] ${model} échoué, tentative ${chain[i + 1]}…`,
+          err instanceof Error ? err.message : err
+        );
+      }
     }
   }
 
