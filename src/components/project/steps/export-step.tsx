@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { Project } from "@/lib/types";
+import type { Project, ProjectStep } from "@/lib/types";
 import {
   cacheRemoteVideo,
   downloadVideoFile,
@@ -39,9 +39,11 @@ import {
 export function ExportStep({
   project,
   onUpdate,
+  onGoToStep,
 }: {
   project: Project;
   onUpdate: (updates: Partial<Project>) => Promise<void>;
+  onGoToStep?: (step: ProjectStep) => void;
 }) {
   const [subtitles, setSubtitles] = useState(
     project.subtitles || project.script
@@ -84,6 +86,18 @@ export function ExportStep({
           );
         } else if (data.status === "failed") {
           setError(data.error ?? "Génération échouée");
+          if (data.error?.includes("expiré")) {
+            setVideoUrl(null);
+            setPlayUrl(null);
+            await onUpdate({ animationVideoUrl: null });
+          }
+        } else if (data.status === "completed" && !data.videoUrl) {
+          setVideoUrl(null);
+          setPlayUrl(null);
+          await onUpdate({ animationVideoUrl: null });
+          setError(
+            "Lien Replicate expiré. Regénérez l'animation (~5 min avec Kling)."
+          );
         }
         return;
       }
@@ -246,7 +260,7 @@ export function ExportStep({
               </div>
             )}
 
-            {playUrl ? (
+            {playUrl && !error ? (
               <div className="space-y-3">
                 <div className="relative mx-auto max-w-sm">
                   <video
@@ -257,11 +271,13 @@ export function ExportStep({
                     onLoadedData={() => {
                       if (videoUrl) void cacheRemoteVideo(project.id, videoUrl);
                     }}
-                    onError={() =>
+                    onError={() => {
+                      setPlayUrl(null);
                       setError(
-                        "Lecture impossible. Cliquez « Actualiser » ou téléchargez le MP4."
-                      )
-                    }
+                        "Vidéo expirée ou introuvable. Regénérez l'animation."
+                      );
+                      void onUpdate({ animationVideoUrl: null });
+                    }}
                   >
                     {vttUrl && (
                       <track
@@ -301,12 +317,23 @@ export function ExportStep({
             ) : null}
 
             {error && (
-              <p className="text-sm text-destructive rounded-lg border border-destructive/30 bg-destructive/10 p-3">
-                {error}
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-destructive rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+                  {error}
+                </p>
+                {onGoToStep && error.includes("expir") && (
+                  <Button
+                    className="w-full gap-2"
+                    onClick={() => onGoToStep("animation")}
+                  >
+                    <RefreshCw className="size-4" />
+                    Regénérer l&apos;animation (~5 min)
+                  </Button>
+                )}
+              </div>
             )}
 
-            {/* Boutons téléchargement */}
+            {/* Boutons téléchargement — hidden duplicate error block removed below */}
             <div className="grid grid-cols-2 gap-2">
               <Button
                 className="gap-2"

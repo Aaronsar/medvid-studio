@@ -169,7 +169,11 @@ export function ProjectEditor() {
           />
         )}
         {activeStep === "export" && (
-          <ExportStep project={project} onUpdate={handleUpdate} />
+          <ExportStep
+            project={project}
+            onUpdate={handleUpdate}
+            onGoToStep={goToStep}
+          />
         )}
       </div>
     </div>

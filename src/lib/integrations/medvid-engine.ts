@@ -283,6 +283,14 @@ export async function getMedVidAnimationStatus(
           : null;
 
     if (status === "succeeded") {
+      if (!videoUrl) {
+        return {
+          status: "failed",
+          videoUrl: null,
+          error:
+            "Lien vidéo expiré côté Replicate. Regénérez l'animation (~5 min).",
+        };
+      }
       return { status: "completed", videoUrl, error: null };
     }
 
