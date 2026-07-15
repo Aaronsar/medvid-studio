@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { VOICE_OPTIONS, type Project } from "@/lib/types";
+import { prepareScriptForSpeech } from "@/lib/speech-script";
 import { saveVoiceAudio } from "@/lib/project-blobs";
 import { cn } from "@/lib/utils";
 import { Loader2, ArrowRight, Mic, Play, Pause, AlertCircle } from "lucide-react";
