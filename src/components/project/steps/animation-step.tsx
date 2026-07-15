@@ -15,11 +15,8 @@ import {
 import type { Project, ProjectStep } from "@/lib/types";
 import { VOICE_OPTIONS } from "@/lib/types";
 import { parseApiResponse } from "@/lib/api-client";
-import {
-  loadCharacterImage,
-  loadVoiceAudio,
-  isCharacterBlobRef,
-} from "@/lib/project-blobs";
+import { resolveMedvidAssetUrls } from "@/lib/medvid-assets-client";
+import { isCharacterBlobRef } from "@/lib/project-blobs";
 import { downloadVideoFromUrl } from "@/lib/subtitles";
 import {
   Loader2,
@@ -284,23 +281,8 @@ export function AnimationStep({
         ("medvid" as const);
 
       let voiceAssetId = project.voiceHeygenAssetId;
-      let voiceAudioDataUrl: string | null = null;
-      let characterImageDataUrl: string | null = null;
-
-      if (provider === "medvid") {
-        characterImageDataUrl = await loadCharacterImage(project.id);
-        if (!characterImageDataUrl && project.characterImageUrl?.startsWith("data:")) {
-          characterImageDataUrl = project.characterImageUrl;
-        }
-        voiceAudioDataUrl = await loadVoiceAudio(project.id);
-
-        if (!characterImageDataUrl) {
-          setError(
-            "Image personnage introuvable. Regénérez à l'étape Personnage."
-          );
-          return;
-        }
-      }
+      let characterMedvidUrl = project.characterMedvidUrl;
+      let voiceMedvidUrl = project.voiceMedvidUrl;
 
       if (!voiceReady || (provider === "heygen" && !voiceAssetId)) {
         const voiceRes = await fetch(`/api/projects/${project.id}/voice`, {
@@ -315,6 +297,7 @@ export function AnimationStep({
           error?: string;
           voiceAudioUrl?: string;
           voiceHeygenAssetId?: string;
+          voiceMedvidUrl?: string;
           voiceGeneratedWithId?: string;
         }>(voiceRes);
         if (!ok) {
@@ -322,15 +305,12 @@ export function AnimationStep({
           return;
         }
         voiceAssetId = voiceData.voiceHeygenAssetId ?? null;
-        if (voiceData.voiceAudioUrl) {
-          voiceAudioDataUrl = voiceData.voiceAudioUrl;
-        }
+        voiceMedvidUrl = voiceData.voiceMedvidUrl ?? voiceMedvidUrl;
         await onUpdate({
           voiceGeneratedWithId: voiceData.voiceGeneratedWithId,
           voiceHeygenAssetId: voiceAssetId,
+          voiceMedvidUrl,
         });
-      } else if (provider === "medvid" && !voiceAudioDataUrl) {
-        voiceAudioDataUrl = await loadVoiceAudio(project.id);
       }
 
       if (provider === "heygen" && !voiceAssetId) {
@@ -338,9 +318,29 @@ export function AnimationStep({
         return;
       }
 
-      if (provider === "medvid" && !voiceAudioDataUrl) {
-        setError("Audio voix introuvable. Regénérez à l'étape Voix.");
-        return;
+      if (provider === "medvid") {
+        setStatusMessage("Préparation des fichiers MedVid...");
+        try {
+          const urls = await resolveMedvidAssetUrls({
+            ...project,
+            characterMedvidUrl,
+            voiceMedvidUrl,
+          });
+          characterMedvidUrl = urls.characterMedvidUrl;
+          voiceMedvidUrl = urls.voiceMedvidUrl;
+          if (
+            characterMedvidUrl !== project.characterMedvidUrl ||
+            voiceMedvidUrl !== project.voiceMedvidUrl
+          ) {
+            await onUpdate({
+              characterMedvidUrl,
+              voiceMedvidUrl,
+            });
+          }
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Erreur préparation MedVid");
+          return;
+        }
       }
 
       if (
@@ -371,8 +371,8 @@ export function AnimationStep({
           provider === "medvid"
             ? {
                 provider: "medvid",
-                characterImageDataUrl,
-                voiceAudioDataUrl,
+                characterMedvidUrl,
+                voiceMedvidUrl,
                 professorName: project.professorName,
                 title: project.title,
               }

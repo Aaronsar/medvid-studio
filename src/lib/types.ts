@@ -21,10 +21,12 @@ export interface Project {
   characterImageUrl: string | null;
   characterHeygenAssetId: string | null;
   characterHeygenAvatarId: string | null;
+  characterMedvidUrl: string | null;
   voiceId: string;
   voiceAudioUrl: string | null;
   voiceGeneratedWithId: string | null;
   voiceHeygenAssetId: string | null;
+  voiceMedvidUrl: string | null;
   animationVideoUrl: string | null;
   heygenVideoId: string | null;
   animationProvider: "heygen" | "medvid" | null;

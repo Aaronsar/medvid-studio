@@ -8,7 +8,7 @@ export async function parseApiResponse<T = Record<string, unknown>>(
     const hint = text.slice(0, 80).replace(/\s+/g, " ");
     throw new Error(
       res.status === 413
-        ? "Fichier trop volumineux pour le serveur. Regénérez personnage et voix."
+        ? "Fichier trop volumineux. L'upload est en cours de préparation — réessayez dans quelques secondes."
         : `Erreur serveur (${res.status}) : ${hint}`
     );
   }

@@ -31,31 +31,37 @@ function getModelChain(): MedVidModel[] {
   return MODEL_CHAIN;
 }
 
-function toDataUri(value: string, fallbackMime: string): string {
+function toMediaInput(value: string, fallbackMime: string): string {
+  if (value.startsWith("http://") || value.startsWith("https://")) {
+    return value;
+  }
   if (value.startsWith("data:")) return value;
   return `data:${fallbackMime};base64,${value}`;
 }
 
-function getBase64Payload(dataUrl: string): string | null {
-  const match = dataUrl.match(/^data:[^;]+;base64,(.+)$/);
+function getBase64Payload(mediaUrl: string): string | null {
+  const match = mediaUrl.match(/^data:[^;]+;base64,(.+)$/);
   return match?.[1] ?? null;
 }
 
-function estimateAudioSeconds(audioDataUrl: string): number {
-  const payload = getBase64Payload(audioDataUrl);
+function estimateAudioSeconds(audioUrl: string): number {
+  if (audioUrl.startsWith("http")) return 60;
+  const payload = getBase64Payload(audioUrl);
   if (!payload) return 60;
   const bytes = Buffer.from(payload, "base64").length;
   return Math.min(180, Math.max(8, Math.ceil(bytes / 16_000)));
 }
 
-function getAudioByteSize(audioDataUrl: string): number {
-  const payload = getBase64Payload(audioDataUrl);
+function getAudioByteSize(audioUrl: string): number {
+  if (audioUrl.startsWith("http")) return 0;
+  const payload = getBase64Payload(audioUrl);
   if (!payload) return 0;
   return Buffer.from(payload, "base64").length;
 }
 
-function assertKlingAudioLimit(audioDataUrl: string): void {
-  const bytes = getAudioByteSize(audioDataUrl);
+function assertKlingAudioLimit(audioUrl: string): void {
+  if (audioUrl.startsWith("http")) return;
+  const bytes = getAudioByteSize(audioUrl);
   if (bytes > KLING_AUDIO_MAX_BYTES) {
     const mb = (bytes / (1024 * 1024)).toFixed(1);
     throw new Error(
@@ -66,11 +72,11 @@ function assertKlingAudioLimit(audioDataUrl: string): void {
 }
 
 async function createKlingPrediction(params: {
-  imageDataUrl: string;
-  audioDataUrl: string;
+  imageUrl: string;
+  audioUrl: string;
   professorName?: string;
 }) {
-  assertKlingAudioLimit(params.audioDataUrl);
+  assertKlingAudioLimit(params.audioUrl);
 
   const prompt = params.professorName
     ? `medical professor ${params.professorName} lecturing professionally, natural lip sync, subtle head movement, expressive cartoon face`
@@ -79,8 +85,8 @@ async function createKlingPrediction(params: {
   return createPredictionWithRetry({
     model: KLING_MODEL,
     input: {
-      image: toDataUri(params.imageDataUrl, "image/png"),
-      audio: toDataUri(params.audioDataUrl, "audio/mpeg"),
+      image: toMediaInput(params.imageUrl, "image/png"),
+      audio: toMediaInput(params.audioUrl, "audio/mpeg"),
       mode: "pro",
       prompt,
     },
@@ -88,12 +94,12 @@ async function createKlingPrediction(params: {
 }
 
 async function createSadTalkerPrediction(params: {
-  imageDataUrl: string;
-  audioDataUrl: string;
+  imageUrl: string;
+  audioUrl: string;
 }) {
   const input = {
-    source_image: toDataUri(params.imageDataUrl, "image/png"),
-    driven_audio: toDataUri(params.audioDataUrl, "audio/mpeg"),
+    source_image: toMediaInput(params.imageUrl, "image/png"),
+    driven_audio: toMediaInput(params.audioUrl, "audio/mpeg"),
     preprocess: "full",
     still_mode: false,
     use_enhancer: true,
@@ -120,15 +126,15 @@ async function createSadTalkerPrediction(params: {
 }
 
 async function createMemoPrediction(params: {
-  imageDataUrl: string;
-  audioDataUrl: string;
+  imageUrl: string;
+  audioUrl: string;
 }) {
-  const audioSec = estimateAudioSeconds(params.audioDataUrl);
+  const audioSec = estimateAudioSeconds(params.audioUrl);
   return createPredictionWithRetry({
     model: MEMO_MODEL,
     input: {
-      image: toDataUri(params.imageDataUrl, "image/png"),
-      audio: toDataUri(params.audioDataUrl, "audio/mpeg"),
+      image: toMediaInput(params.imageUrl, "image/png"),
+      audio: toMediaInput(params.audioUrl, "audio/mpeg"),
       resolution: 512,
       fps: 24,
       inference_steps: 25,
@@ -142,8 +148,8 @@ async function createMemoPrediction(params: {
 async function createPredictionForModel(
   model: MedVidModel,
   params: {
-    imageDataUrl: string;
-    audioDataUrl: string;
+    imageUrl: string;
+    audioUrl: string;
     professorName?: string;
   }
 ) {
@@ -158,8 +164,8 @@ async function createPredictionForModel(
 }
 
 export async function startMedVidAnimation(params: {
-  imageDataUrl: string;
-  audioDataUrl: string;
+  imageUrl: string;
+  audioUrl: string;
   professorName?: string;
   preferredModel?: MedVidModel;
 }): Promise<{

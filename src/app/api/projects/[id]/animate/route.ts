@@ -20,26 +20,24 @@ export async function POST(
   const title = (body.title as string | undefined) ?? "MedVid Studio";
 
   if (provider === "medvid") {
-    const characterImageDataUrl = body.characterImageDataUrl as
-      | string
-      | undefined;
-    const voiceAudioDataUrl = body.voiceAudioDataUrl as string | undefined;
+    const characterMedvidUrl = body.characterMedvidUrl as string | undefined;
+    const voiceMedvidUrl = body.voiceMedvidUrl as string | undefined;
 
-    if (!characterImageDataUrl) {
+    if (!characterMedvidUrl) {
       return NextResponse.json(
         {
           error:
-            "Image personnage manquante. Regénérez le personnage à l'étape précédente.",
+            "Image personnage non préparée. Regénérez le personnage à l'étape précédente.",
         },
         { status: 400 }
       );
     }
 
-    if (!voiceAudioDataUrl) {
+    if (!voiceMedvidUrl) {
       return NextResponse.json(
         {
           error:
-            "Audio voix manquant. Retournez à l'étape Voix et générez la narration.",
+            "Audio voix non préparé. Retournez à l'étape Voix et générez la narration.",
         },
         { status: 400 }
       );
@@ -47,8 +45,8 @@ export async function POST(
 
     try {
       const result = await startMedVidAnimation({
-        imageDataUrl: characterImageDataUrl,
-        audioDataUrl: voiceAudioDataUrl,
+        imageUrl: characterMedvidUrl,
+        audioUrl: voiceMedvidUrl,
         professorName: (body.professorName as string | undefined) ?? title,
       });
 

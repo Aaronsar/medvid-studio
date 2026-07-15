@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateCharacterImage } from "@/lib/integrations/openai";
 import { uploadImageFromDataUrl, createPhotoAvatar } from "@/lib/integrations/heygen";
+import { uploadDataUrlToReplicate } from "@/lib/integrations/replicate-files";
 import { STYLE_OPTIONS } from "@/lib/types";
 
 export const maxDuration = 60;
@@ -37,6 +38,10 @@ export async function POST(
       ? referenceImageBase64
       : `data:image/jpeg;base64,${referenceImageBase64}`;
     const characterHeygenAssetId = await uploadImageFromDataUrl(imageUrl);
+    const characterMedvidUrl = await uploadDataUrlToReplicate(
+      imageUrl,
+      `${professorName}-character`
+    );
     let characterHeygenAvatarId: string | null = null;
     if (characterHeygenAssetId) {
       try {
@@ -54,6 +59,7 @@ export async function POST(
       characterImageUrl: imageUrl,
       characterHeygenAssetId,
       characterHeygenAvatarId,
+      characterMedvidUrl,
       referencePhotoUrl: referenceImageBase64,
       currentStep: "voice",
       status: "in_progress",
@@ -75,6 +81,10 @@ export async function POST(
     const characterHeygenAssetId = await uploadImageFromDataUrl(
       result.imageUrl
     );
+    const characterMedvidUrl = await uploadDataUrlToReplicate(
+      result.imageUrl,
+      `${professorName}-character`
+    );
 
     let characterHeygenAvatarId: string | null = null;
     if (characterHeygenAssetId) {
@@ -93,6 +103,7 @@ export async function POST(
       characterImageUrl: result.imageUrl,
       characterHeygenAssetId,
       characterHeygenAvatarId,
+      characterMedvidUrl,
       referencePhotoUrl: referenceImageBase64 ?? null,
       currentStep: "voice",
       status: "in_progress",

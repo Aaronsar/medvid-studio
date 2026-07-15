@@ -112,6 +112,7 @@ export function CharacterStep({
         characterImageUrl: characterBlobRef(project.id),
         characterHeygenAssetId: data.characterHeygenAssetId ?? null,
         characterHeygenAvatarId: data.characterHeygenAvatarId ?? null,
+        characterMedvidUrl: data.characterMedvidUrl ?? null,
         currentStep: "voice",
         status: "in_progress",
       });

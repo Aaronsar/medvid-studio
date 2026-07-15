@@ -71,6 +71,7 @@ export function VoiceStep({
           voiceId: data.voiceId,
           voiceGeneratedWithId: data.voiceGeneratedWithId ?? voiceId,
           voiceHeygenAssetId: data.voiceHeygenAssetId ?? null,
+          voiceMedvidUrl: data.voiceMedvidUrl ?? null,
         });
       }
     } finally {

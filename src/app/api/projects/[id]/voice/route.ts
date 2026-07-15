@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateVoice } from "@/lib/integrations/elevenlabs";
 import { uploadAudioAsset } from "@/lib/integrations/heygen";
+import { uploadBufferToReplicate } from "@/lib/integrations/replicate-files";
 
 export const maxDuration = 120;
 
@@ -34,9 +35,15 @@ export async function POST(
     }
 
     let voiceHeygenAssetId: string | null = null;
+    let voiceMedvidUrl: string | null = null;
     if (result.audioBase64) {
       const buffer = Buffer.from(result.audioBase64, "base64");
       voiceHeygenAssetId = await uploadAudioAsset(buffer);
+      voiceMedvidUrl = await uploadBufferToReplicate(
+        buffer,
+        "narration.mp3",
+        "audio/mpeg"
+      );
     }
 
     const audioUrl = result.audioBase64
@@ -48,6 +55,7 @@ export async function POST(
       voiceAudioUrl: audioUrl,
       voiceGeneratedWithId: voiceId,
       voiceHeygenAssetId,
+      voiceMedvidUrl,
       currentStep: "animation",
       status: "in_progress",
       demo: result.demo,
