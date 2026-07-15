@@ -156,9 +156,13 @@ export function AnimationStep({
       }
 
       if (data.status === "failed") {
+        const providerLabel =
+          (animationProvider ?? project.animationProvider) === "medvid"
+            ? "MedVid Engine"
+            : "HeyGen";
         const detail = data.error
-          ? `HeyGen : ${data.error}`
-          : "La génération a échoué chez HeyGen. Réessayez ou regénérez le personnage (un seul visage de face).";
+          ? `${providerLabel} : ${data.error}`
+          : `La génération a échoué. Réessayez ou regénérez le personnage.`;
         setError(detail);
         setVideoId(null);
         await onUpdate({ heygenVideoId: null, animationVideoUrl: null });

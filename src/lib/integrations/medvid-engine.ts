@@ -288,9 +288,11 @@ export async function getMedVidAnimationStatus(
 
     if (status === "failed" || status === "canceled") {
       const err =
-        typeof prediction.error === "string"
-          ? prediction.error
-          : "Génération MedVid Engine échouée";
+        status === "canceled"
+          ? "Génération annulée. Cliquez « Lancer l'animation » pour relancer."
+          : typeof prediction.error === "string"
+            ? prediction.error
+            : "Génération MedVid Engine échouée";
       return { status: "failed", videoUrl: null, error: err };
     }
 
