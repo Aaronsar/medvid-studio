@@ -8,6 +8,9 @@
     },
     "src/app/api/projects/[id]/voice/route.ts": {
       "maxDuration": 120
+    },
+    "src/app/api/projects/download-video/route.ts": {
+      "maxDuration": 120
     }
   }
 }

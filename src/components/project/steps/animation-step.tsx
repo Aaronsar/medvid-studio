@@ -17,7 +17,7 @@ import { VOICE_OPTIONS } from "@/lib/types";
 import { parseApiResponse } from "@/lib/api-client";
 import { resolveMedvidAssetUrls } from "@/lib/medvid-assets-client";
 import { isCharacterBlobRef } from "@/lib/project-blobs";
-import { downloadVideoFromUrl } from "@/lib/subtitles";
+import { cacheRemoteVideo, downloadVideoFile, getVideoProxyUrl } from "@/lib/video-cache";
 import {
   Loader2,
   ArrowRight,
@@ -143,6 +143,7 @@ export function AnimationStep({
       if (data.status === "completed" && data.videoUrl) {
         setVideoUrl(data.videoUrl);
         setStatusMessage("Vidéo prête !");
+        void cacheRemoteVideo(project.id, data.videoUrl);
         await onUpdate({
           animationVideoUrl: data.videoUrl,
           heygenVideoId: id,
@@ -733,9 +734,10 @@ export function AnimationStep({
           {videoUrl ? (
             <div className="space-y-4">
               <video
-                src={videoUrl}
+                src={getVideoProxyUrl(videoUrl)}
                 controls
                 className="w-full rounded-xl border border-border"
+                onLoadedData={() => void cacheRemoteVideo(project.id, videoUrl)}
               />
               <div className="grid grid-cols-2 gap-2">
                 <Button
@@ -751,7 +753,11 @@ export function AnimationStep({
                   variant="outline"
                   className="gap-2"
                   onClick={() =>
-                    downloadVideoFromUrl(videoUrl, `${safeFilename}.mp4`)
+                    void downloadVideoFile(
+                      project.id,
+                      videoUrl,
+                      `${safeFilename}.mp4`
+                    )
                   }
                 >
                   <Download className="size-4" />

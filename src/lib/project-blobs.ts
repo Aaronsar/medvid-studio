@@ -82,6 +82,49 @@ export async function loadVoiceAudio(
   });
 }
 
+export async function saveProjectVideo(
+  projectId: string,
+  blob: Blob
+): Promise<void> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).put(blob, `video:${projectId}`);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export async function loadProjectVideoBlob(
+  projectId: string
+): Promise<Blob | null> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readonly");
+    const req = tx.objectStore(STORE).get(`video:${projectId}`);
+    req.onsuccess = () => resolve((req.result as Blob) ?? null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function loadProjectVideoObjectUrl(
+  projectId: string
+): Promise<string | null> {
+  const blob = await loadProjectVideoBlob(projectId);
+  if (!blob) return null;
+  return URL.createObjectURL(blob);
+}
+
+export async function deleteProjectVideo(projectId: string): Promise<void> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    tx.objectStore(STORE).delete(`video:${projectId}`);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 export async function deleteCharacterImage(projectId: string): Promise<void> {
   const db = await openDb();
   return new Promise((resolve, reject) => {

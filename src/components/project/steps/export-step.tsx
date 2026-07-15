@@ -14,10 +14,14 @@ import {
 } from "@/components/ui/card";
 import type { Project } from "@/lib/types";
 import {
+  cacheRemoteVideo,
+  downloadVideoFile,
+  resolvePlaybackUrl,
+} from "@/lib/video-cache";
+import {
   generateSRT,
   generateVTT,
   downloadFile,
-  downloadVideoFromUrl,
 } from "@/lib/subtitles";
 import {
   Download,
@@ -48,6 +52,8 @@ export function ExportStep({
   const [error, setError] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [videoUrl, setVideoUrl] = useState(project.animationVideoUrl);
+  const [playUrl, setPlayUrl] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
   const [videoStatus, setVideoStatus] = useState<string | null>(null);
   const [heygenId, setHeygenId] = useState(project.heygenVideoId);
   const [vttUrl, setVttUrl] = useState<string | null>(null);
@@ -68,6 +74,7 @@ export function ExportStep({
         if (data.status === "completed" && data.videoUrl) {
           setVideoUrl(data.videoUrl);
           await onUpdate({ animationVideoUrl: data.videoUrl });
+          void cacheRemoteVideo(project.id, data.videoUrl);
         } else if (
           data.status === "processing" ||
           data.status === "pending"
@@ -100,6 +107,7 @@ export function ExportStep({
             animationVideoUrl: data.videoUrl,
             heygenVideoId: data.videoId,
           });
+          void cacheRemoteVideo(project.id, data.videoUrl);
         } else if (data.status === "processing" || data.status === "waiting") {
           setError(
             "Vidéo en cours chez HeyGen (5–10 min pour 2 min de contenu). Actualisation automatique..."
@@ -114,6 +122,37 @@ export function ExportStep({
       setSyncing(false);
     }
   }, [heygenId, project.title, project.id, project.animationProvider, videoUrl, onUpdate]);
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+    let cancelled = false;
+
+    async function loadPlayback() {
+      const url = await resolvePlaybackUrl(project.id, videoUrl);
+      if (cancelled) {
+        if (url?.startsWith("blob:")) URL.revokeObjectURL(url);
+        return;
+      }
+      if (url) {
+        objectUrl = url.startsWith("blob:") ? url : null;
+        setPlayUrl(url);
+        setError("");
+      } else if (videoUrl) {
+        setPlayUrl(null);
+        setError(
+          "Lien vidéo expiré. Cliquez « Actualiser » ou regénérez l'animation."
+        );
+      } else {
+        setPlayUrl(null);
+      }
+    }
+
+    void loadPlayback();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [videoUrl, project.id]);
 
   useEffect(() => {
     syncVideo();
@@ -207,15 +246,22 @@ export function ExportStep({
               </div>
             )}
 
-            {videoUrl ? (
+            {playUrl ? (
               <div className="space-y-3">
                 <div className="relative mx-auto max-w-sm">
                   <video
-                    key={videoUrl}
-                    src={videoUrl}
+                    key={playUrl}
+                    src={playUrl}
                     controls
                     className="w-full rounded-xl border border-border"
-                    crossOrigin="anonymous"
+                    onLoadedData={() => {
+                      if (videoUrl) void cacheRemoteVideo(project.id, videoUrl);
+                    }}
+                    onError={() =>
+                      setError(
+                        "Lecture impossible. Cliquez « Actualiser » ou téléchargez le MP4."
+                      )
+                    }
                   >
                     {vttUrl && (
                       <track
@@ -264,13 +310,32 @@ export function ExportStep({
             <div className="grid grid-cols-2 gap-2">
               <Button
                 className="gap-2"
-                disabled={!videoUrl}
-                onClick={() =>
-                  videoUrl &&
-                  downloadVideoFromUrl(videoUrl, `${safeFilename}.mp4`)
-                }
+                disabled={!videoUrl && !playUrl}
+                onClick={async () => {
+                  setDownloading(true);
+                  setError("");
+                  try {
+                    await downloadVideoFile(
+                      project.id,
+                      videoUrl,
+                      `${safeFilename}.mp4`
+                    );
+                  } catch (err) {
+                    setError(
+                      err instanceof Error
+                        ? err.message
+                        : "Téléchargement impossible"
+                    );
+                  } finally {
+                    setDownloading(false);
+                  }
+                }}
               >
-                <Download className="size-4" />
+                {downloading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Download className="size-4" />
+                )}
                 Vidéo MP4
               </Button>
               <Button
@@ -380,7 +445,7 @@ export function ExportStep({
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Vidéo</span>
                 <Badge variant={videoUrl ? "success" : "outline"}>
-                  {videoUrl ? "Prête" : videoStatus === "processing" ? "En cours" : "Manquante"}
+                  {playUrl ? "Prête" : videoStatus === "processing" ? "En cours" : "Manquante"}
                 </Badge>
               </div>
             </CardContent>
