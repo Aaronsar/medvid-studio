@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateCharacterImage } from "@/lib/integrations/openai";
+import { uploadImageFromDataUrl, createPhotoAvatar } from "@/lib/integrations/heygen";
 import { STYLE_OPTIONS } from "@/lib/types";
 
 export const maxDuration = 60;
@@ -32,11 +33,27 @@ export async function POST(
         { status: 400 }
       );
     }
+    const imageUrl = referenceImageBase64.startsWith("data:")
+      ? referenceImageBase64
+      : `data:image/jpeg;base64,${referenceImageBase64}`;
+    const characterHeygenAssetId = await uploadImageFromDataUrl(imageUrl);
+    let characterHeygenAvatarId: string | null = null;
+    if (characterHeygenAssetId) {
+      try {
+        characterHeygenAvatarId = await createPhotoAvatar(
+          characterHeygenAssetId,
+          `${professorName} — MedVid`
+        );
+      } catch {
+        characterHeygenAvatarId = null;
+      }
+    }
+
     return NextResponse.json({
       characterPrompt: customPrompt || `Photo de ${professorName}`,
-      characterImageUrl: referenceImageBase64.startsWith("data:")
-        ? referenceImageBase64
-        : `data:image/jpeg;base64,${referenceImageBase64}`,
+      characterImageUrl: imageUrl,
+      characterHeygenAssetId,
+      characterHeygenAvatarId,
       referencePhotoUrl: referenceImageBase64,
       currentStep: "voice",
       status: "in_progress",
@@ -55,9 +72,27 @@ export async function POST(
       referenceImageBase64,
     });
 
+    const characterHeygenAssetId = await uploadImageFromDataUrl(
+      result.imageUrl
+    );
+
+    let characterHeygenAvatarId: string | null = null;
+    if (characterHeygenAssetId) {
+      try {
+        characterHeygenAvatarId = await createPhotoAvatar(
+          characterHeygenAssetId,
+          `${professorName} — MedVid`
+        );
+      } catch {
+        characterHeygenAvatarId = null;
+      }
+    }
+
     return NextResponse.json({
       characterPrompt: result.prompt,
       characterImageUrl: result.imageUrl,
+      characterHeygenAssetId,
+      characterHeygenAvatarId,
       referencePhotoUrl: referenceImageBase64 ?? null,
       currentStep: "voice",
       status: "in_progress",

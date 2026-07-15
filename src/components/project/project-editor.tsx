@@ -7,6 +7,7 @@ import {
   getProjectClient,
   updateProjectClient,
 } from "@/lib/projects-client";
+import { hydrateProject } from "@/lib/project-blobs";
 import { StepIndicator } from "@/components/project/step-indicator";
 import { ScriptStep } from "@/components/project/steps/script-step";
 import { CharacterStep } from "@/components/project/steps/character-step";
@@ -33,10 +34,21 @@ export function ProjectEditor() {
   const [loading, setLoading] = useState(true);
   const [activeStep, setActiveStep] = useState<ProjectStep>("script");
 
-  const loadProject = useCallback(() => {
+  const loadProject = useCallback(async () => {
     const data = getProjectClient(id);
-    setProject(data);
-    if (data) setActiveStep(data.currentStep ?? "script");
+    if (!data) {
+      setProject(null);
+      setLoading(false);
+      return;
+    }
+    const hydrated = await hydrateProject(data);
+    setProject(hydrated);
+    setActiveStep(hydrated.currentStep ?? "script");
+    if (data.characterImageUrl?.startsWith("data:")) {
+      updateProjectClient(id, {
+        characterImageUrl: `idb:character:${id}`,
+      });
+    }
     setLoading(false);
   }, [id]);
 
@@ -46,7 +58,22 @@ export function ProjectEditor() {
 
   async function handleUpdate(updates: Partial<Project>) {
     const updated = updateProjectClient(id, updates);
-    if (updated) setProject(updated);
+    if (updated) {
+      const hydrated = await hydrateProject(updated);
+      setProject(hydrated);
+    }
+  }
+
+  function goToStep(step: ProjectStep) {
+    void (async () => {
+      const fresh = getProjectClient(id);
+      if (fresh) {
+        const hydrated = await hydrateProject(fresh);
+        setProject(hydrated);
+      }
+      setActiveStep(step);
+      updateProjectClient(id, { currentStep: step });
+    })();
   }
 
   function goToNextStep() {
@@ -108,7 +135,7 @@ export function ProjectEditor() {
 
       <StepIndicator
         currentStep={activeStep}
-        onStepClick={setActiveStep}
+        onStepClick={goToStep}
       />
 
       <div className="pt-2">
@@ -138,6 +165,7 @@ export function ProjectEditor() {
             project={project}
             onUpdate={handleUpdate}
             onNext={goToNextStep}
+            onGoToStep={goToStep}
           />
         )}
         {activeStep === "export" && (

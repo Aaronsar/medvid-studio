@@ -30,20 +30,20 @@ export default function SettingsPage() {
       pricing: "Gratuit limité, puis ~5€/mois",
     },
     {
-      name: "HeyGen",
-      envVar: "HEYGEN_API_KEY",
-      description: "Animation Avatar IV — lip-sync pour personnages 3D/cartoon",
-      connected: apiStatus.heygen,
-      url: "https://app.heygen.com/settings?nav=API",
-      pricing: "Gratuit limité, puis ~24€/mois",
-    },
-    {
-      name: "Replicate",
+      name: "MedVid Engine",
       envVar: "REPLICATE_API_TOKEN",
-      description: "Alternative pour génération d'images (optionnel)",
+      description: "Notre moteur lip-sync (Kling Avatar V2 + MEMO) — remplace HeyGen",
       connected: apiStatus.replicate,
       url: "https://replicate.com/account/api-tokens",
-      pricing: "Pay-per-use",
+      pricing: "~1–2 $/vidéo cartoon — ajoutez une carte sur replicate.com/account/billing",
+    },
+    {
+      name: "HeyGen (optionnel)",
+      envVar: "HEYGEN_API_KEY",
+      description: "Référence qualité externe — seulement si ANIMATION_PROVIDER=heygen",
+      connected: apiStatus.heygen,
+      url: "https://app.heygen.com/settings?nav=API",
+      pricing: "~4–5 $/min — non requis",
     },
   ];
 

@@ -19,10 +19,16 @@ export interface Project {
   script: string;
   characterPrompt: string;
   characterImageUrl: string | null;
+  characterHeygenAssetId: string | null;
+  characterHeygenAvatarId: string | null;
   voiceId: string;
   voiceAudioUrl: string | null;
+  voiceGeneratedWithId: string | null;
+  voiceHeygenAssetId: string | null;
   animationVideoUrl: string | null;
   heygenVideoId: string | null;
+  animationProvider: "heygen" | "medvid" | null;
+  animationModel: "kling" | "memo" | "sadtalker" | null;
   subtitles: string;
   style: "pixar" | "realistic" | "anime";
 }
@@ -63,9 +69,24 @@ export const STEPS: { id: ProjectStep; label: string; description: string }[] = 
 ];
 
 export const VOICE_OPTIONS = [
-  { id: "french-male-1", name: "Professeur (homme)", lang: "fr" },
-  { id: "french-female-1", name: "Professeure (femme)", lang: "fr" },
-  { id: "french-male-2", name: "Narrateur médical", lang: "fr" },
+  {
+    id: "french-male-1",
+    name: "Louis — narrateur documentaire",
+    lang: "fr",
+    description: "Voix masculine posée, idéale pour les cours",
+  },
+  {
+    id: "french-female-1",
+    name: "Marilène — narratrice",
+    lang: "fr",
+    description: "Voix féminine claire et professionnelle",
+  },
+  {
+    id: "french-male-2",
+    name: "Yann — formateur",
+    lang: "fr",
+    description: "Ton pédagogique, dynamique et naturel",
+  },
 ];
 
 export const STYLE_OPTIONS = [
@@ -74,21 +95,21 @@ export const STYLE_OPTIONS = [
     name: "3D Animation",
     description: "Style cartoon type film d'animation",
     promptSuffix:
-      "3D animated character, Pixar-style, warm cinematic lighting, expressive face, sitting in cozy armchair, high quality render",
+      "3D Pixar-style cartoon medical professor, warm cinematic lighting, friendly expressive face with clear eyes nose and mouth facing camera directly, bust shot from chest up, cozy armchair, soft blurred background, tarbaland educational reel style, high quality render",
   },
   {
     id: "realistic" as const,
     name: "Réaliste",
     description: "Avatar photo-réaliste du professeur",
     promptSuffix:
-      "professional medical professor portrait, photorealistic, studio lighting, white coat, confident expression",
+      "photorealistic medical professor, white coat, simple blurred studio background, neutral pose, confident warm expression, professional headshot",
   },
   {
     id: "anime" as const,
     name: "Anime",
     description: "Style manga/anime éducatif",
     promptSuffix:
-      "anime style medical professor character, clean lines, vibrant colors, educational manga aesthetic",
+      "anime style medical professor, clean lines, vibrant colors, simple gradient background, bust portrait, educational manga aesthetic",
   },
 ];
 
@@ -112,11 +133,20 @@ export const TOOLS = [
     url: null,
   },
   {
+    id: "medvid-engine",
+    name: "MedVid Engine",
+    role: "Animation & lip-sync",
+    step: "animation",
+    description: "Notre moteur propriétaire — MEMO + SadTalker, visages cartoon",
+    integrated: true,
+    url: null,
+  },
+  {
     id: "heygen",
     name: "HeyGen",
     role: "Animation & lip-sync",
     step: "animation",
-    description: "Avatar IV — animez vos personnages 3D",
+    description: "Option premium externe — ~4–5 $/min (non requis)",
     integrated: true,
     url: "https://heygen.com",
   },
@@ -140,11 +170,11 @@ export const TOOLS = [
   },
   {
     id: "capcut",
-    name: "CapCut",
-    role: "Montage & sous-titres",
+    name: "Export MedVid",
+    role: "Sous-titres & téléchargement",
     step: "export",
-    description: "Montage final et sous-titres",
-    integrated: false,
-    url: "https://capcut.com",
+    description: "Lecteur vidéo, export MP4, SRT et script — tout sur la plateforme",
+    integrated: true,
+    url: null,
   },
 ];

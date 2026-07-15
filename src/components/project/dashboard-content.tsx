@@ -127,7 +127,8 @@ export function DashboardContent({
             {[
               { name: "OpenAI", ok: apiStatus.openai },
               { name: "ElevenLabs", ok: apiStatus.elevenlabs },
-              { name: "HeyGen", ok: apiStatus.heygen },
+              { name: "MedVid Engine", ok: apiStatus.replicate },
+              { name: "HeyGen (opt.)", ok: apiStatus.heygen },
             ].map((api) => (
               <div key={api.name} className="flex justify-between">
                 <span>{api.name}</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { Project } from "@/lib/types";
+import {
+  saveCharacterImage,
+  characterBlobRef,
+  loadCharacterImage,
+  isCharacterBlobRef,
+} from "@/lib/project-blobs";
 import {
   Loader2,
   ArrowRight,
@@ -39,7 +45,17 @@ export function CharacterStep({
   const [demo, setDemo] = useState(false);
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState(project.characterImageUrl);
+  const [saved, setSaved] = useState(
+    !!project.characterImageUrl || isCharacterBlobRef(project.characterImageUrl)
+  );
   const [referencePhoto, setReferencePhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (imageUrl || !isCharacterBlobRef(project.characterImageUrl)) return;
+    loadCharacterImage(project.id).then((img) => {
+      if (img) setImageUrl(img);
+    });
+  }, [project.id, project.characterImageUrl, imageUrl]);
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -90,14 +106,22 @@ export function CharacterStep({
       }
       setImageUrl(data.characterImageUrl);
       setDemo(data.demo);
+      await saveCharacterImage(project.id, data.characterImageUrl);
       await onUpdate({
         characterPrompt: data.characterPrompt,
-        characterImageUrl: data.characterImageUrl,
+        characterImageUrl: characterBlobRef(project.id),
+        characterHeygenAssetId: data.characterHeygenAssetId ?? null,
+        characterHeygenAvatarId: data.characterHeygenAvatarId ?? null,
         currentStep: "voice",
         status: "in_progress",
       });
-    } catch {
-      setError("Erreur réseau, réessayez");
+      setSaved(true);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Erreur réseau, réessayez"
+      );
     } finally {
       setGenerating(false);
     }
@@ -112,7 +136,8 @@ export function CharacterStep({
             Générer le personnage
           </CardTitle>
           <CardDescription>
-            Uploadez votre photo pour créer un avatar 3D qui vous ressemble
+            Format Reels : le professeur seul en plan buste (style tarbaland).
+            Évitez les scènes avec élèves — HeyGen anime tous les visages.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -179,11 +204,20 @@ export function CharacterStep({
               rows={3}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="ex: assis dans un fauteuil orange, écharpe rouge, blouse blanche..."
+              placeholder="ex: fauteuil orange, blouse blanche, fond chaleureux flou — pas de salle de classe ni d'élèves"
             />
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
+
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200/90 space-y-1">
+            <p className="font-medium">Important pour l&apos;animation</p>
+            <p>
+              Utilisez une image avec <strong>un seul visage</strong> (prof en
+              plan buste). Le style <strong>3D cartoon</strong> est supporté via
+              HeyGen Avatar IV.
+            </p>
+          </div>
 
           <div className="space-y-2">
             {referencePhoto ? (
@@ -230,6 +264,11 @@ export function CharacterStep({
             )}
           </div>
 
+          {saved && imageUrl && (
+            <p className="text-xs text-accent text-center">
+              Personnage enregistré — vous pouvez changer d&apos;étape
+            </p>
+          )}
           {generating && (
             <p className="text-xs text-muted-foreground text-center">
               La génération prend 30 à 60 secondes, patientez...

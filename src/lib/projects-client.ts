@@ -13,6 +13,19 @@ function readProjects(): Project[] {
   }
 }
 
+/** Strip heavy blobs only when localStorage quota is exceeded */
+function stripHeavyBlobs(project: Project): Project {
+  const copy = { ...project };
+  if (copy.voiceAudioUrl?.startsWith("data:")) copy.voiceAudioUrl = null;
+  if (
+    copy.characterImageUrl?.startsWith("data:") &&
+    copy.characterImageUrl.length > 400_000
+  ) {
+    copy.characterImageUrl = null;
+  }
+  return copy;
+}
+
 function writeProjects(projects: Project[]): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
@@ -21,7 +34,7 @@ function writeProjects(projects: Project[]): void {
       err instanceof DOMException &&
       (err.name === "QuotaExceededError" || err.code === 22)
     ) {
-      const light = projects.map(sanitizeProject);
+      const light = projects.map(stripHeavyBlobs);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(light));
       return;
     }
@@ -29,15 +42,14 @@ function writeProjects(projects: Project[]): void {
   }
 }
 
-function sanitizeProject(project: Project): Project {
+/** Never persist raw blobs in localStorage — images go to IndexedDB */
+function prepareForStorage(project: Project): Project {
   const copy = { ...project };
-  if (copy.animationVideoUrl?.startsWith("http")) {
-    if (copy.voiceAudioUrl?.startsWith("data:")) copy.voiceAudioUrl = null;
+  if (copy.voiceAudioUrl?.startsWith("data:")) {
+    copy.voiceAudioUrl = null;
   }
-  if (copy.characterImageUrl && copy.characterImageUrl.length > 200_000) {
-    if (copy.animationVideoUrl?.startsWith("http")) {
-      copy.characterImageUrl = null;
-    }
+  if (copy.characterImageUrl?.startsWith("data:")) {
+    copy.characterImageUrl = null;
   }
   return copy;
 }
@@ -69,10 +81,16 @@ export function createProjectClient(
     script: "",
     characterPrompt: `Medical professor ${data.professorName}, specialist in ${data.specialty}`,
     characterImageUrl: null,
+    characterHeygenAssetId: null,
+    characterHeygenAvatarId: null,
     voiceId: "french-male-1",
     voiceAudioUrl: null,
+    voiceGeneratedWithId: null,
+    voiceHeygenAssetId: null,
     animationVideoUrl: null,
     heygenVideoId: null,
+    animationProvider: null,
+    animationModel: null,
     subtitles: "",
   };
 
@@ -90,7 +108,7 @@ export function updateProjectClient(
   const index = projects.findIndex((p) => p.id === id);
   if (index === -1) return null;
 
-  projects[index] = sanitizeProject({
+  projects[index] = prepareForStorage({
     ...projects[index],
     ...updates,
     updatedAt: new Date().toISOString(),

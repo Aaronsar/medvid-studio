@@ -1,12 +1,23 @@
 const FRENCH_VOICES: Record<string, string> = {
-  "french-male-1": "pNInz6obpgDQGcFmaJgB",
-  "french-female-1": "EXAVITQu4vr4xnSDxMaL",
-  "french-male-2": "VR6AewLTigWG4xSOukaG",
+  // Louis – French Documentary Narrator (pédagogique, naturel)
+  "french-male-1": "jGGIwkfv43kUFffPXEEO",
+  // Yann – French Narrator & Training (professionnel, clair)
+  "french-male-2": "dx2ORrUlXO5zZntMhZms",
+  // Marilène – narratrice parisienne (féminin, posé)
+  "french-female-1": "tRQeD4idfj7AuhU7ApjT",
 };
 
 interface GenerateVoiceParams {
   text: string;
   voiceId: string;
+}
+
+function prepareScriptForSpeech(text: string): string {
+  return text
+    .replace(/\n+/g, ". ")
+    .replace(/\s+/g, " ")
+    .replace(/([.!?])\s*/g, "$1 ")
+    .trim();
 }
 
 export async function generateVoice(
@@ -31,11 +42,13 @@ export async function generateVoice(
         Accept: "audio/mpeg",
       },
       body: JSON.stringify({
-        text: params.text,
+        text: prepareScriptForSpeech(params.text),
         model_id: "eleven_multilingual_v2",
         voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
+          stability: 0.38,
+          similarity_boost: 0.88,
+          style: 0.42,
+          use_speaker_boost: true,
         },
       }),
     }

@@ -8,13 +8,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, CheckCircle, Link2 } from "lucide-react";
+import { CheckCircle } from "lucide-react";
 
 export default function ToolsPage() {
   const apiStatus = getApiKeyStatus();
 
   const integratedTools = TOOLS.filter((t) => t.integrated);
-  const externalTools = TOOLS.filter((t) => !t.integrated);
 
   return (
     <div className="space-y-8">
@@ -28,7 +27,7 @@ export default function ToolsPage() {
       <div className="space-y-4">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <CheckCircle className="size-5 text-accent" />
-          Intégrés à la plateforme
+          Tout est intégré à la plateforme
         </h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {integratedTools.map((tool) => {
@@ -37,9 +36,11 @@ export default function ToolsPage() {
                 ? apiStatus.openai
                 : tool.id === "elevenlabs"
                   ? apiStatus.elevenlabs
-                  : tool.id === "heygen"
-                    ? apiStatus.heygen
-                    : false;
+                  : tool.id === "medvid-engine"
+                    ? apiStatus.replicate
+                    : tool.id === "heygen"
+                      ? apiStatus.heygen
+                      : false;
 
             return (
               <Card key={tool.id}>
@@ -66,41 +67,6 @@ export default function ToolsPage() {
         </div>
       </div>
 
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Link2 className="size-5 text-muted-foreground" />
-          Outils externes (liens rapides)
-        </h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {externalTools.map((tool) => (
-            <a
-              key={tool.id}
-              href={tool.url ?? "#"}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Card className="h-full hover:border-primary/50 transition-all">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-base">{tool.name}</CardTitle>
-                    <ExternalLink className="size-4 text-muted-foreground" />
-                  </div>
-                  <CardDescription>{tool.role}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    {tool.description}
-                  </p>
-                  <Badge variant="secondary" className="mt-3 capitalize">
-                    Étape : {tool.step}
-                  </Badge>
-                </CardContent>
-              </Card>
-            </a>
-          ))}
-        </div>
-      </div>
-
       <Card>
         <CardHeader>
           <CardTitle>Workflow recommandé</CardTitle>
@@ -118,7 +84,7 @@ export default function ToolsPage() {
               },
               {
                 step: "2",
-                tool: "DALL·E / Midjourney",
+                tool: "DALL·E (OpenAI)",
                 action: "Générer le personnage 3D",
               },
               {
@@ -133,8 +99,8 @@ export default function ToolsPage() {
               },
               {
                 step: "5",
-                tool: "CapCut",
-                action: "Sous-titres + export",
+                tool: "MedVid Export",
+                action: "Sous-titres + téléchargement MP4",
               },
             ].map((item) => (
               <div

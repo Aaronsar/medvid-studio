@@ -4,7 +4,10 @@
       "maxDuration": 60
     },
     "src/app/api/projects/[id]/animate/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 120
+    },
+    "src/app/api/projects/[id]/voice/route.ts": {
+      "maxDuration": 120
     }
   }
 }

@@ -12,8 +12,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { VOICE_OPTIONS, type Project } from "@/lib/types";
+import { saveVoiceAudio } from "@/lib/project-blobs";
 import { cn } from "@/lib/utils";
-import { Loader2, ArrowRight, Mic, Play, Pause } from "lucide-react";
+import { Loader2, ArrowRight, Mic, Play, Pause, AlertCircle } from "lucide-react";
 
 export function VoiceStep({
   project,
@@ -28,8 +29,26 @@ export function VoiceStep({
   const [generating, setGenerating] = useState(false);
   const [demo, setDemo] = useState(false);
   const [audioUrl, setAudioUrl] = useState(project.voiceAudioUrl);
+  const [generatedWithId, setGeneratedWithId] = useState(
+    project.voiceGeneratedWithId
+  );
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const previewIsStale =
+    audioUrl && generatedWithId && generatedWithId !== voiceId;
+  const selectedVoice = VOICE_OPTIONS.find((v) => v.id === voiceId);
+
+  async function handleSelectVoice(id: string) {
+    setVoiceId(id);
+    setAudioUrl(null);
+    setGeneratedWithId(null);
+    await onUpdate({
+      voiceId: id,
+      voiceAudioUrl: null,
+      voiceGeneratedWithId: null,
+    });
+  }
 
   async function handleGenerate() {
     setGenerating(true);
@@ -42,10 +61,15 @@ export function VoiceStep({
       const data = await res.json();
       if (res.ok) {
         setAudioUrl(data.voiceAudioUrl);
+        setGeneratedWithId(data.voiceGeneratedWithId ?? voiceId);
         setDemo(data.demo);
+        if (data.voiceAudioUrl) {
+          await saveVoiceAudio(project.id, data.voiceAudioUrl);
+        }
         await onUpdate({
           voiceId: data.voiceId,
-          voiceAudioUrl: data.voiceAudioUrl,
+          voiceGeneratedWithId: data.voiceGeneratedWithId ?? voiceId,
+          voiceHeygenAssetId: data.voiceHeygenAssetId ?? null,
         });
       }
     } finally {
@@ -73,7 +97,8 @@ export function VoiceStep({
             Synthèse vocale
           </CardTitle>
           <CardDescription>
-            Générez la voix du professeur via ElevenLabs
+            Choisissez et pré-écoutez la voix — c&apos;est elle qui sera dans
+            la vidéo finale
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -84,7 +109,7 @@ export function VoiceStep({
                 <button
                   key={v.id}
                   type="button"
-                  onClick={() => setVoiceId(v.id)}
+                  onClick={() => handleSelectVoice(v.id)}
                   className={cn(
                     "w-full flex items-center justify-between rounded-lg border p-3 text-sm transition-all",
                     voiceId === v.id
@@ -97,7 +122,20 @@ export function VoiceStep({
                 </button>
               ))}
             </div>
+            {selectedVoice?.description && (
+              <p className="text-xs text-muted-foreground">
+                {selectedVoice.description}
+              </p>
+            )}
           </div>
+
+          {previewIsStale && (
+            <p className="text-xs text-amber-400 flex items-center gap-2">
+              <AlertCircle className="size-3 shrink-0" />
+              Voix changée — cliquez &quot;Générer la voix&quot; pour mettre à
+              jour l&apos;aperçu
+            </p>
+          )}
 
           <div className="rounded-lg bg-secondary/50 p-3 text-sm">
             <p className="text-xs text-muted-foreground mb-1">Texte à lire :</p>
@@ -129,10 +167,14 @@ export function VoiceStep({
       <Card>
         <CardHeader>
           <CardTitle>Aperçu audio</CardTitle>
-          <CardDescription>Écoutez la narration générée</CardDescription>
+          <CardDescription>
+            {generatedWithId && !previewIsStale
+              ? `Voix validée : ${VOICE_OPTIONS.find((v) => v.id === generatedWithId)?.name}`
+              : "Écoutez avant de passer à l'animation"}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {audioUrl ? (
+          {audioUrl && !previewIsStale ? (
             <div className="space-y-4">
               <div className="flex items-center justify-center rounded-xl border border-border bg-secondary/30 p-12">
                 <Button
@@ -153,6 +195,9 @@ export function VoiceStep({
                   onEnded={() => setPlaying(false)}
                 />
               </div>
+              <Badge variant="success" className="w-full justify-center">
+                Cette voix sera utilisée pour la vidéo
+              </Badge>
               <Button onClick={onNext} className="gap-2 w-full">
                 Continuer vers l&apos;animation
                 <ArrowRight className="size-4" />

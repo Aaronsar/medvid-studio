@@ -54,10 +54,16 @@ export async function createProject(
     script: "",
     characterPrompt: `Medical professor ${data.professorName}, specialist in ${data.specialty}`,
     characterImageUrl: null,
+    characterHeygenAssetId: null,
+    characterHeygenAvatarId: null,
     voiceId: "french-male-1",
     voiceAudioUrl: null,
+    voiceGeneratedWithId: null,
+    voiceHeygenAssetId: null,
     animationVideoUrl: null,
     heygenVideoId: null,
+    animationProvider: null,
+    animationModel: null,
     subtitles: "",
   };
 

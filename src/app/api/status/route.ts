@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server";
-import { getApiKeyStatus } from "@/lib/integrations/config";
+import { getApiKeyStatus, getAnimationProvider, isMedVidEngineReady } from "@/lib/integrations/config";
+import { getHeyGenWalletBalance } from "@/lib/integrations/heygen";
 
 export async function GET() {
-  return NextResponse.json(getApiKeyStatus());
+  const apiStatus = getApiKeyStatus();
+  const heygenWallet = apiStatus.heygen
+    ? await getHeyGenWalletBalance()
+    : { connected: true, balanceUsd: null, billingType: null };
+
+  return NextResponse.json({
+    ...apiStatus,
+    heygenWallet,
+    animationProvider: getAnimationProvider(),
+    medvidEngine: isMedVidEngineReady(),
+  });
 }
