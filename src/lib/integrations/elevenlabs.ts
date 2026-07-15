@@ -1,3 +1,8 @@
+/**
+ * Synthèse vocale ElevenLabs — eleven_v3 pour pauses, soupirs et émotions.
+ */
+import { prepareScriptForSpeech } from "@/lib/speech-script";
+
 const FRENCH_VOICES: Record<string, string> = {
   // Louis – French Documentary Narrator (pédagogique, naturel)
   "french-male-1": "jGGIwkfv43kUFffPXEEO",
@@ -12,12 +17,8 @@ interface GenerateVoiceParams {
   voiceId: string;
 }
 
-function prepareScriptForSpeech(text: string): string {
-  return text
-    .replace(/\n+/g, ". ")
-    .replace(/\s+/g, " ")
-    .replace(/([.!?])\s*/g, "$1 ")
-    .trim();
+function getSpeechModel(): string {
+  return process.env.ELEVENLABS_MODEL?.trim() || "eleven_v3";
 }
 
 export async function generateVoice(
@@ -32,6 +33,23 @@ export async function generateVoice(
   const elevenLabsVoiceId =
     FRENCH_VOICES[params.voiceId] ?? FRENCH_VOICES["french-male-1"];
 
+  const speechText = prepareScriptForSpeech(params.text);
+  if (!speechText) {
+    throw new Error("Script vide après suppression des indications scéniques.");
+  }
+
+  const modelId = getSpeechModel();
+  const body: Record<string, unknown> = {
+    text: speechText,
+    model_id: modelId,
+    voice_settings: {
+      stability: 0.4,
+      similarity_boost: 0.88,
+      style: 0.55,
+      use_speaker_boost: true,
+    },
+  };
+
   const response = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${elevenLabsVoiceId}`,
     {
@@ -41,16 +59,7 @@ export async function generateVoice(
         "Content-Type": "application/json",
         Accept: "audio/mpeg",
       },
-      body: JSON.stringify({
-        text: prepareScriptForSpeech(params.text),
-        model_id: "eleven_multilingual_v2",
-        voice_settings: {
-          stability: 0.38,
-          similarity_boost: 0.88,
-          style: 0.42,
-          use_speaker_boost: true,
-        },
-      }),
+      body: JSON.stringify(body),
     }
   );
 

@@ -138,8 +138,14 @@ export function VoiceStep({
           )}
 
           <div className="rounded-lg bg-secondary/50 p-3 text-sm">
-            <p className="text-xs text-muted-foreground mb-1">Texte à lire :</p>
-            <p className="line-clamp-4">{project.script || "Aucun script"}</p>
+            <p className="text-xs text-muted-foreground mb-1">
+              Texte lu par la voix (indications scéniques interprétées) :
+            </p>
+            <p className="line-clamp-4">
+              {project.script
+                ? prepareScriptForSpeech(project.script)
+                : "Aucun script"}
+            </p>
           </div>
 
           <Button

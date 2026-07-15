@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { Project } from "@/lib/types";
+import { countSpokenWords } from "@/lib/speech-script";
 import { Loader2, ArrowRight, Sparkles } from "lucide-react";
 
 const SCRIPT_TEMPLATES = [
@@ -59,7 +60,7 @@ export function ScriptStep({
     setScript(filled);
   }
 
-  const wordCount = script.trim().split(/\s+/).filter(Boolean).length;
+  const wordCount = countSpokenWords(script);
   const estimatedDuration = Math.ceil(wordCount / 2.5);
 
   return (
@@ -72,11 +73,24 @@ export function ScriptStep({
               Rédiger le script
             </CardTitle>
             <CardDescription>
-              Écrivez le contenu que le professeur dira dans la vidéo (60-90
-              secondes recommandé)
+              Écrivez le dialogue. Les indications scéniques (pause, soupir…)
+              sont interprétées par la voix, pas lues à voix haute.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="rounded-lg border border-border/80 bg-secondary/30 p-3 text-xs text-muted-foreground space-y-1">
+              <p className="font-medium text-foreground/90">Indications vocales</p>
+              <p>
+                Écrivez sur une ligne : <code className="text-primary">[pause, soupir]</code>{" "}
+                ou <code className="text-primary">(pause)</code> — la voix fera une vraie
+                pause ou un soupir.
+              </p>
+              <p>
+                Tags avancés : <code className="text-primary">[sighs]</code>,{" "}
+                <code className="text-primary">[angry]</code>,{" "}
+                <code className="text-primary">[whispers]</code>
+              </p>
+            </div>
             <div className="space-y-2">
               <Label htmlFor="script">Script de narration</Label>
               <Textarea
